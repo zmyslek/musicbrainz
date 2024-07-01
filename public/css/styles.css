@@ -24,6 +24,9 @@ nav {
 .navbar-right {
     margin-left: auto;
 }
+i{
+    color: white;
+}
 
 nav a, .dropbtn, i {
     color: white;

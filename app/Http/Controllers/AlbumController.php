@@ -9,30 +9,25 @@ class AlbumController extends Controller
 {
     public function show($id)
     {
-        $albumResponse = Http::get("https://musicbrainz.org/ws/2/release-group/{$id}?inc=artist-credits+releases&fmt=json");
-
-        if ($albumResponse->failed()) {
-            return view('album')->with('error', 'Error fetching album information.');
-        }
-
-        $album = $albumResponse->json();
-        $artistName = $album['artist-credit'][0]['name'];
-
-        // Fetch songs
-        $songsResponse = Http::get("https://musicbrainz.org/ws/2/recording", [
-            'release' => $album['releases'][0]['id'],
+        $response = Http::withHeaders([
+            'User-Agent' => 'YourAppName/1.0 ( yourname@example.com )'
+        ])->get("https://musicbrainz.org/ws/2/release-group/$id", [
             'fmt' => 'json'
         ]);
 
-        $songs = $songsResponse->successful() ? $songsResponse->json()['recordings'] : [];
-
-        return view('album', compact('album', 'artistName', 'songs'));
+        $album = $response->json();
+        return view('album', ['album' => $album]);
     }
 
-    public function getDetails($id)
+    public function getRecordings($id)
     {
-        $albumResponse = Http::get("https://musicbrainz.org/ws/2/release-group/{$id}?inc=artist-credits+releases&fmt=json");
+        $response = Http::withHeaders([
+            'User-Agent' => 'YourAppName/1.0 ( yourname@example.com )'
+        ])->get("https://musicbrainz.org/ws/2/recording", [
+            'release' => $id,
+            'fmt' => 'json'
+        ]);
 
-        return response()->json($albumResponse->json());
+        return response()->json($response->json());
     }
 }

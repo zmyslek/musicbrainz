@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/ArtistController.php
 
 namespace App\Http\Controllers;
 
@@ -7,41 +8,56 @@ use Illuminate\Support\Facades\Http;
 
 class ArtistController extends Controller
 {
-    public function getArtist($name)
-    {
-        $response = Http::withHeaders([
-            'User-Agent' => 'YourAppName/1.0 (yourname@example.com)'
-        ])->get("https://musicbrainz.org/ws/2/artist/", [
-            'query' => "artist:$name",
-            'fmt' => 'json'
-        ]);
+public function index()
+{
+return view('index');
+}
 
-        $artist = $response->json();
-        return view('artist', ['name' => $name, 'artist' => $artist]);
-    }
+public function show($name)
+{
+$response = Http::get("https://musicbrainz.org/ws/2/artist/", [
+'query' => 'artist:"' . $name . '"',
+'fmt' => 'json',
+]);
 
-    public function getArtistAnnotations($id)
-    {
-        $response = Http::withHeaders([
-            'User-Agent' => 'YourAppName/1.0 (yourname@example.com)'
-        ])->get("https://musicbrainz.org/ws/2/annotation/", [
-            'query' => "artist:$id",
-            'fmt' => 'json'
-        ]);
+$data = $response->json();
+$artist = $data['artists'][0] ?? null;
 
-        return response()->json($response->json());
-    }
+if ($artist) {
+// Fetch albums
+$albumsResponse = Http::get("https://musicbrainz.org/ws/2/release-group", [
+'artist' => $artist['id'],
+'type' => 'album|single',
+'fmt' => 'json',
+]);
+$albumsData = $albumsResponse->json();
 
-    public function getArtistAlbums($id)
-    {
-        $response = Http::withHeaders([
-            'User-Agent' => 'YourAppName/1.0 (yourname@example.com)'
-        ])->get("https://musicbrainz.org/ws/2/release-group", [
-            'artist' => $id,
-            'type' => 'album|single',
-            'fmt' => 'json'
-        ]);
+return view('artist', [
+'artist' => $artist,
+'albums' => $albumsData['release-groups'] ?? [],
+]);
+}
 
-        return response()->json($response->json());
-    }
+return view('artist', ['artist' => null, 'albums' => []]);
+}
+
+public function showAlbum($id)
+{
+$response = Http::get("https://musicbrainz.org/ws/2/release-group/{$id}", [
+'fmt' => 'json',
+]);
+
+$album = $response->json();
+$songsResponse = Http::get("https://musicbrainz.org/ws/2/recording", [
+'release' => $id,
+'fmt' => 'json',
+]);
+
+$songs = $songsResponse->json()['recordings'] ?? [];
+
+return view('album', [
+'album' => $album,
+'songs' => $songs,
+]);
+}
 }
